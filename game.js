@@ -1,51 +1,62 @@
+//coder's comment: not much best practices nor code optimisation here because i'm trying to fit it all in 13kb
+
 var fc = 0, //framecount
-  sce = 0, //scene
-  lvl = 1, //level
-  tileSize = 50,
-  code = -1, //keyCode
-  keypressed = 0;
+  sce, //scene
+  lvl, //level
+  bestLvl = 0; //best level
+(tileSize = 50),
+  (code = -1), //keyCode
+  (keypressed = 0); //is key pressed or not
+
+//add keyboard event listeners
 window.addEventListener("keydown", this.keyDown, 0);
 window.addEventListener("keyup", this.keyUp, 0);
 
 function keyDown(e) {
   code = e.keyCode;
   //console.log(code);
-  keypressed = !event.repeat; //prevents repeats
+  keypressed = !event.repeat; //prevents repeats from holding down key
 }
 
 function keyUp(e) {
   if (code == e.keyCode) keypressed = 0;
 }
 
-function startGame() { //called once document is loaded
-  myGameArea.start();
+function startGame() {
+  //called once document is loaded
+  myGameArea.setup();
 }
 
 var myGameArea = {
   cv: document.createElement("canvas"),
-  start: function() {
+  setup: function() {
     this.cv.width = tileSize * 16;
     this.cv.height = tileSize * 12;
     this.ctx = this.cv.getContext("2d");
     this.ctx.textAlign = "center";
     document.body.insertBefore(this.cv, document.body.childNodes[0]);
-    this.interval = setInterval(updateGameArea, 20);
+    this.interval = setInterval(updateGameArea, 20); //50fps. not the best rate but i have no idea why it's 50.
+    this.start();
+  },
+  start: function() {
+    sce = 0;
+    lvl = 1;
     this.title = new title(this.cv.width / 2, this.cv.height / 2);
     this.level = new level(this.cv.width / 2, this.cv.height / 2);
   },
   clear: function() {
-    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-    this.ctx.fillStyle = "#000";
+    this.ctx.setTransform(1, 0, 0, 1, 0, 0); //reset transform matrix
+    this.ctx.fillStyle = "#000"; //paint it black
     this.ctx.fillRect(0, 0, this.cv.width, this.cv.height);
     this.ctx.font = "20px Courier";
   },
   update: function() {
     switch (sce) {
-      case 0:
+      case 0: //title screen
         this.title.update();
         if (keypressed) this.title.fade = 1;
         break;
-      case 1:
+      case 1: //in-game
         this.level.update();
         if (keypressed) {
           if (this.level.state == 0) this.level.fade = 1;
@@ -55,11 +66,8 @@ var myGameArea = {
           }
         }
         break;
-      case 2:
+      case 2: //level up!
         this.level.lvlUp();
-        break;
-      case 3:
-        this.gameover.update();
         break;
     }
   }
@@ -68,20 +76,27 @@ var myGameArea = {
 function updateGameArea() {
   myGameArea.clear();
   myGameArea.update();
-  fc++;
+  fc++; //increase framecount
 }
 
 function title(x, y) {
-  var a = 1,
+  var a = 0,
     pos = [0, -49, -50, -39, 58, -36, 55, -58, 97, -37, -89, -23, -55, -30];
-  this.fade = 0;
+  this.fade = -1;
   this.update = function() {
     ctx = myGameArea.ctx;
-    if (this.fade) {
-      if (a > 0) {
-        a -= 0.01;
-      } else {
-        sce++;
+    switch (this.fade) {
+      case 1: //fade out
+        if (a > 0) {
+          a -= 0.01;
+        } else {
+          sce++;
+        }
+      case -1: //fade in
+      if (a < 1) {
+        a += 0.01;
+      } else{
+        this.fade = 0;
       }
     }
     var d = Math.floor(fc / 10) % 10; //displacement for floating animation
@@ -117,8 +132,7 @@ function title(x, y) {
 * House object
 */
 function house(s = 0, X = 0, Y = 0) {
-  this.state = 0; //0 - shows a house, 1 - image not found, 2 - loading gif
-  this.delete = 0; //true when new house object (state=2) replaces previous house object (state=1)
+  this.state = s; //0 - shows a house, 1 - image not found, 2 - 'loading' animation
   var x = X, //only needed when in 'loading' state
     y = Y,
     t = 0;
@@ -151,33 +165,30 @@ function house(s = 0, X = 0, Y = 0) {
         );
         break;
       case 1: //404 not found
-        console.log(fc - t);
-        if (fc - t > 240) { //after showing not found icon for 4 sec, delete this object
-          this.delete = 1;
-        }
         ctx.strokeStyle = "#fff";
         ctx.lineWidth = 1;
-        ctx.strokeRect(x, y, tileSize, tileSize);
-        ctx.fillRect(x + 4, y + 4, tileSize / 4, tileSize / 4);
+        ctx.strokeRect(0, 0, tileSize, tileSize);
+        ctx.fillRect(4, 4, tileSize / 4, tileSize / 4);
+        //'X'
         ctx.strokeStyle = "#000";
         ctx.beginPath();
-        ctx.moveTo(x + 6, y + 6);
-        ctx.lineTo(x + tileSize / 4, y + tileSize / 4);
+        ctx.moveTo(6, 6);
+        ctx.lineTo(tileSize / 4, tileSize / 4);
         ctx.stroke();
         ctx.closePath();
         ctx.beginPath();
-        ctx.moveTo(x + 6, y + tileSize / 4);
-        ctx.lineTo(x + tileSize / 4, y + 6);
+        ctx.moveTo(6, tileSize / 4);
+        ctx.lineTo(tileSize / 4, 6);
         ctx.stroke();
         ctx.closePath();
         break;
       case 2: //loading
         var a = Math.floor((fc % 80) / 10) + 1; //to shift opacity values; rotates opacity value once in 10 frames
-        for (var i = a; i < a + 8; i++) {//draw 8 circles with varying opacity
-          x + (tileSize / 2 - 4) * Math.sin(i * 2 * Math.PI / 8),
-            y + (tileSize / 2 - 4) * Math.sin(i * 2 * Math.PI / 8);
+        for (var i = a; i < a + 8; i++) {
+          //draw 8 circles with varying opacity
           ctx.fillStyle = "rgba(200,200,200," + (i - a) * 1 / 8 + ")";
           ctx.beginPath();
+          //drawing circles in a circle
           ctx.arc(
             x +
               tileSize / 2 +
@@ -200,32 +211,11 @@ function house(s = 0, X = 0, Y = 0) {
 
 function player(X, Y) {
   //draws player
-  var a = 1; //alpha
+  var a = 1; //alpha value
   this.dX = 0; //displacement (for when moving)
   this.dY = 0;
   this.x = X; //position
   this.y = Y;
-  this.draw = function() {
-    ctx = myGameArea.ctx;
-    if (this.home) { //fading when position is same as house
-      this.a -= 0.01;
-      if (this.a <= 0) {//
-        lvl++;
-      }
-    }
-    ctx.fillStyle = "rgba(255,255,255," + a + ")";
-    ctx.beginPath();
-    ctx.arc(
-      this.x * tileSize + tileSize / 2,
-      this.y * tileSize + tileSize / 2,
-      tileSize / 2 - 10,
-      0,
-      2 * Math.PI,
-      false
-    );
-    ctx.fill();
-    ctx.closePath();
-  };
   this.update = function() {
     this.x += this.dX;
     this.x = r2(this.x);
@@ -240,6 +230,26 @@ function player(X, Y) {
     } else {
       this.fade = 0;
     }
+    if (a <= 0) myGameArea.start(); //restart game
+  };
+  this.draw = function() {
+    ctx = myGameArea.ctx;
+    if (this.home) {
+      //fading when same position as house
+      this.a -= 0.01;
+    }
+    ctx.fillStyle = "rgba(255,255,255," + a + ")";
+    ctx.beginPath();
+    ctx.arc(
+      this.x * tileSize + tileSize / 2,
+      this.y * tileSize + tileSize / 2,
+      tileSize / 2 - 10,
+      0,
+      2 * Math.PI,
+      false
+    );
+    ctx.fill();
+    ctx.closePath();
   };
   this.move = function(nPos, time) {
     this.nX = nPos.x;
@@ -253,7 +263,7 @@ function player(X, Y) {
 }
 
 function level(cx, cy) {
-  var a = 1,
+  var a = 1, //alpha value for
     playerTurn = 0,
     stepsTaken = 0,
     showAns = 0;
@@ -263,7 +273,7 @@ function level(cx, cy) {
     now = { x: 0, y: 1 },
     e = [{ x: -1, y: 0 }, { x: 0, y: -1 }, { x: 1, y: 0 }, { x: 0, y: 1 }];
   this.fade = 0;
-  this.state = 0;
+  this.state = 0; //0 - show level no., 1 - main game state, 2 - animation state to continue to next level, 3 - gameover? state
   this.p = new player(now.x, now.y);
   this.h = new house();
   this.lvlUp = function() {
@@ -289,21 +299,25 @@ function level(cx, cy) {
     }
   };
   this.cpuMove = function() {
-    var newPos = [];
+    var newPos = []; //stores possible new positions
     for (var i = 0; i < 4; i++) {
-      var d = { x: now.x + e[i].x, y: now.y + e[i].y };
-      var blk = 0;
+      var d = { x: now.x + e[i].x, y: now.y + e[i].y }; //each tile around the current position
+      var blk = 0; //number of blocks
       if (d.x != 0 && d.y != 0 && !findPos(pPos, d)) {
+        //make sure d is a valid position i.e. not taken up by house or any previous steps
         for (var h = 0; h < 4; h++) {
-          var dBlk = { x: d.x + e[h].x, y: d.y + e[h].y };
-          if ((dBlk.x == 0 && dBlk.y == 0) || findPos(pPos, d)) {
+          var dBlk = { x: d.x + e[h].x, y: d.y + e[h].y }; //for each tile around d
+          if ((dBlk.x == 0 && dBlk.y == 0) || findPos(pPos, dBlk)) {
+            //check if boxed in by previous steps, hence making it not an ideal direction to move to
             blk++;
           }
         }
       } else {
+        //is out of the question
         blk = 4;
       }
-      if (blk > -1 && blk < 4) {
+      if (blk > -1 && blk < 3) {
+        //0 to 2 blks are fine
         newPos.push(d);
       }
     }
@@ -353,14 +367,12 @@ function level(cx, cy) {
   this.goHome = function() {
     //animates player token going home
     pPos.unshift({ x: 0, y: 0 });
-    this.p.move(pPos[pPos.length - 1], 1000);
+    this.p.move(pPos[pPos.length - 1], 500);
     pPos.pop();
   };
   this.update = function() {
     if (this.state == 1) {
-      if (playerTurn && pPos.length == 1) {
-        this.state = 2;
-      }
+      if (playerTurn && pPos.length == 1) this.state = 2; //completes level
       if (this.p.still()) {
         if (playerTurn) {
           this.pMove();
@@ -369,24 +381,13 @@ function level(cx, cy) {
         }
       }
     }
-    if (this.state == 2 && this.p.still() && keypressed) sce = 2;
+    if (this.state == 2 && this.p.still() && keypressed) sce = 2; //
     if (this.state == 4) {
-      if (this.nh != undefined) {
-        //show for 4 seconds before restarting game
-        console.log(fc - t);
-        if (fc - t > 80) {
-          this.h = this.nh;
-          this.h.state = 0;
-          lvl = 0;
-          this.levelUp();
-        }
-      } else {
+      if (this.nh == undefined) {
+        //player token travels back to house and resets level (game restart)
         if (this.p.still()) {
           if (pPos.length > 0) {
-            //player token travels back to home and restart current level
             this.goHome();
-          } else{
-            myGameArea.restart();
           }
         }
       }
@@ -476,9 +477,6 @@ function level(cx, cy) {
         }
       }
     }
-    if (this.nh != undefined) {
-      this.nh.draw();
-    }
     ctx.setTransform(
       1,
       0,
@@ -487,6 +485,9 @@ function level(cx, cy) {
       cx - (this.p.x * tileSize + tileSize / 2),
       cy - (this.p.y * tileSize + tileSize / 2)
     );
+    if (this.nh != undefined) {
+      this.nh.draw();
+    }
     this.h.draw();
     this.p.draw();
   };
@@ -495,6 +496,13 @@ function level(cx, cy) {
       //existing home becomes 404 and new home token constructed
       this.h.state = 1;
       this.nh = new house(this.p.x, this.p.y - 1, 2);
+      //level starts again after 4 seconds
+      setTimeout(function() {
+        this.h = this.nh;
+        this.h.state = 0;
+        lvl--;
+        this.lvlUp();
+      }, 4000);
       t = fc;
     } else if (b == 1) {
       //show way back home
@@ -504,6 +512,7 @@ function level(cx, cy) {
   };
 }
 
+//checks if pos obj a1 == a2
 function is_same(a1, a2) {
   var same =
     a1.length == a2.length &&
@@ -513,10 +522,12 @@ function is_same(a1, a2) {
   return same;
 }
 
+//round num to 2 d.p.
 function r2(num) {
   return +(Math.round(num + "e+2") + "e-2");
 }
 
+//returns true if pos d is in array
 function findPos(array, d) {
   var found = false;
   array.forEach(function(e) {
