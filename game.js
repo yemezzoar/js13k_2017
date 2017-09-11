@@ -1,8 +1,8 @@
-var fc = 0,
-  sce = 0,
-  lvl = 1,
+var fc = 0, //framecount
+  sce = 0, //scene
+  lvl = 1, //level
   tileSize = 50,
-  code = -1,
+  code = -1, //keyCode
   keypressed = 0;
 window.addEventListener("keydown", this.keyDown, 0);
 window.addEventListener("keyup", this.keyUp, 0);
@@ -10,15 +10,14 @@ window.addEventListener("keyup", this.keyUp, 0);
 function keyDown(e) {
   code = e.keyCode;
   //console.log(code);
-  keypressed = !event.repeat;
+  keypressed = !event.repeat; //prevents repeats
 }
 
 function keyUp(e) {
-  code = e.keyCode;
-  keypressed = 0;
+  if (code == e.keyCode) keypressed = 0;
 }
 
-function startGame() {
+function startGame() { //called once document is loaded
   myGameArea.start();
 }
 
@@ -118,16 +117,16 @@ function title(x, y) {
 * House object
 */
 function house(s = 0, X = 0, Y = 0) {
-  this.state = 0;
-  this.delete = 0;
-  var x = X,
+  this.state = 0; //0 - shows a house, 1 - image not found, 2 - loading gif
+  this.delete = 0; //true when new house object (state=2) replaces previous house object (state=1)
+  var x = X, //only needed when in 'loading' state
     y = Y,
     t = 0;
   this.draw = function() {
     ctx = myGameArea.ctx;
     ctx.fillStyle = "#fff";
     switch (this.state) {
-      case 0: //a house
+      case 0: //a houses
         //triangle
         ctx.beginPath();
         ctx.moveTo(1, tileSize / 2);
@@ -153,7 +152,7 @@ function house(s = 0, X = 0, Y = 0) {
         break;
       case 1: //404 not found
         console.log(fc - t);
-        if (fc - t > 240) {
+        if (fc - t > 240) { //after showing not found icon for 4 sec, delete this object
           this.delete = 1;
         }
         ctx.strokeStyle = "#fff";
@@ -173,8 +172,8 @@ function house(s = 0, X = 0, Y = 0) {
         ctx.closePath();
         break;
       case 2: //loading
-        var a = Math.floor((fc % 80) / 10) + 1; //shifting opacity values
-        for (var i = a; i < a + 8; i++) {
+        var a = Math.floor((fc % 80) / 10) + 1; //to shift opacity values; rotates opacity value once in 10 frames
+        for (var i = a; i < a + 8; i++) {//draw 8 circles with varying opacity
           x + (tileSize / 2 - 4) * Math.sin(i * 2 * Math.PI / 8),
             y + (tileSize / 2 - 4) * Math.sin(i * 2 * Math.PI / 8);
           ctx.fillStyle = "rgba(200,200,200," + (i - a) * 1 / 8 + ")";
@@ -201,17 +200,16 @@ function house(s = 0, X = 0, Y = 0) {
 
 function player(X, Y) {
   //draws player
-  this.goHome = 0;
-  var a = 1;
-  this.dX = 0;
+  var a = 1; //alpha
+  this.dX = 0; //displacement (for when moving)
   this.dY = 0;
-  this.x = X;
+  this.x = X; //position
   this.y = Y;
   this.draw = function() {
     ctx = myGameArea.ctx;
-    if (this.home) {
+    if (this.home) { //fading when position is same as house
       this.a -= 0.01;
-      if (this.a <= 0) {
+      if (this.a <= 0) {//
         lvl++;
       }
     }
