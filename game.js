@@ -14,7 +14,7 @@ window.addEventListener("keyup", this.keyUp, 0);
 
 function keyDown(e) {
   code = e.keyCode;
-  //console.log(code);
+  console.log(code);
   keypressed = !event.repeat; //prevents repeats from holding down key
 }
 
@@ -87,13 +87,13 @@ function title(x, y) {
     ctx = myGameArea.ctx;
     switch (this.fade) {
       case 1: //fade out
-        if (a > 0) {
-          a -= 0.01;
+        if (a >= 0) {
+          a -= 0.02;
         } else {
           sce++;
         }
       case -1: //fade in
-      if (a < 1) {
+      if (a <= 1) {
         a += 0.01;
       } else{
         this.fade = 0;
@@ -128,14 +128,12 @@ function title(x, y) {
   };
 }
 
-/*
-* House object
-*/
 function house(s = 0, X = 0, Y = 0) {
   this.state = s; //0 - shows a house, 1 - image not found, 2 - 'loading' animation
   var x = X, //only needed when in 'loading' state
     y = Y,
     t = 0;
+    console.log(x+" "+y);
   this.draw = function() {
     ctx = myGameArea.ctx;
     ctx.fillStyle = "#fff";
@@ -190,10 +188,10 @@ function house(s = 0, X = 0, Y = 0) {
           ctx.beginPath();
           //drawing circles in a circle
           ctx.arc(
-            x +
+            x *tileSize+
               tileSize / 2 +
               (tileSize / 2 - 4) * Math.sin(i * 2 * Math.PI / 8),
-            y +
+            y *tileSize+
               tileSize / 2 +
               (tileSize / 2 - 4) * Math.cos(i * 2 * Math.PI / 8),
             tileSize / 8 * ((i - a) / 8),
@@ -263,11 +261,10 @@ function player(X, Y) {
 }
 
 function level(cx, cy) {
-  var a = 1, //alpha value for
+  var a = 1, //alpha value for text
     playerTurn = 0,
     stepsTaken = 0,
     showAns = 0;
-  t = 0;
   var pastD = [],
     pPos = [{ x: 0, y: 1 }],
     now = { x: 0, y: 1 },
@@ -280,21 +277,27 @@ function level(cx, cy) {
     a = 1;
     this.fade = 0;
     this.state = 0;
+    pastD = [],
+    pPos = [{ x: 0, y: 1 }],
+    now = { x: 0, y: 1 },
+    e = [{ x: -1, y: 0 }, { x: 0, y: -1 }, { x: 1, y: 0 }, { x: 0, y: 1 }];
+    this.p.x = 0;
+    this.p.y = 1;
     playerTurn = 0;
     lvl++;
     stepsTaken = 0;
     sce = 1;
   };
   this.pMove = function() {
-    if (this.state == 1 && keypressed && code > 36 && code < 41) {
+    if (this.state == 1 && keypressed && code > 36 && code < 41) {  //37-40: left, up, right, down
       var d = e[code - 37];
       now.x += d.x;
       now.y += d.y;
       this.p.move(now, 1000);
       if (JSON.stringify(now) === JSON.stringify(pPos[pPos.length - 2])) {
-        pPos.pop();
+        pPos.pop(); //continue moving
       } else {
-        this.state = 3;
+        this.state = 3; //lose level
       }
     }
   };
@@ -321,15 +324,15 @@ function level(cx, cy) {
         newPos.push(d);
       }
     }
-    if (pastD.length > 2 && newPos.length > 1) {
+    if (pastD.length > 2 && newPos.length > 1) { //keep track of past few directions to prevent travelling in the same direction for too long
       var i = 0;
       var sum = 0;
       while (i < pastD.length) {
         sum += pastD[i];
         i++;
       }
-      if (sum == 0 || sum == 3) {
-        for (var i = newPos.length - 1; i > 0; i--) {
+      if (sum == 0 || sum == 3) { // if either x-direction or y-direction for all past 3 directions
+        for (var i = newPos.length - 1; i > 0; i--) { //remove all travel direction that is the same from the possible new positions
           if (newPos.length > 1) {
             if (pastD[0] == 0 && newPos[i].x == now.x) {
               newPos.splice(i, 1);
@@ -340,9 +343,9 @@ function level(cx, cy) {
         }
       }
     }
-    var nPos;
+    var nPos; //new position
     if (newPos.length > 1) {
-      nPos = newPos[Math.floor(Math.random() * newPos.length)];
+      nPos = newPos[Math.floor(Math.random() * newPos.length)]; //randomly select one
     } else {
       nPos = newPos[0];
     }
@@ -495,14 +498,15 @@ function level(cx, cy) {
     if (b == 0) {
       //existing home becomes 404 and new home token constructed
       this.h.state = 1;
-      this.nh = new house(this.p.x, this.p.y - 1, 2);
+      this.nh = new house(2, this.p.x, this.p.y - 1);
       //level starts again after 4 seconds
-      setTimeout(function() {
-        this.h = this.nh;
-        this.h.state = 0;
+      setTimeout(function(self) {
+        self.nh.state = 0;
+        self.h = self.nh;
+        self.nh = undefined;
         lvl--;
-        this.lvlUp();
-      }, 4000);
+        self.lvlUp();
+      }, 4000, this);
       t = fc;
     } else if (b == 1) {
       //show way back home
@@ -510,16 +514,6 @@ function level(cx, cy) {
     }
     this.state++;
   };
-}
-
-//checks if pos obj a1 == a2
-function is_same(a1, a2) {
-  var same =
-    a1.length == a2.length &&
-    a1.every(function(element, index) {
-      return element === a2[index];
-    });
-  return same;
 }
 
 //round num to 2 d.p.
