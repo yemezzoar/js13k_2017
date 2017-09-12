@@ -14,7 +14,6 @@ window.addEventListener("keyup", this.keyUp, 0);
 
 function keyDown(e) {
   code = e.keyCode;
-  console.log(code);
   keypressed = !event.repeat; //prevents repeats from holding down key
 }
 
@@ -133,7 +132,6 @@ function house(s = 0, X = 0, Y = 0) {
   var x = X, //only needed when in 'loading' state
     y = Y,
     t = 0;
-  console.log(x + " " + y);
   this.draw = function() {
     ctx = myGameArea.ctx;
     ctx.fillStyle = "#fff";
